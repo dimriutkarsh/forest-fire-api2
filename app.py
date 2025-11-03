@@ -3,38 +3,37 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 
-# ===========================================
-# 🌲 VANRAKSHAK FOREST FIRE DETECTION API
-# ===========================================
-
+# ----------------------------
 # Initialize Flask app
+# ----------------------------
 app = Flask(__name__)
 
-# ✅ Allow all frontend origins (development mode)
-# You can replace "*" with your frontend domain (e.g., "https://vanrakshak.vercel.app") when deployed
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# ✅ Allow both local and deployed frontends
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+            "https://forest-fire-api2.onrender.com",   # backend itself
+            "https://van-dash.vercel.app"          # (optional) replace if you deploy frontend
+        ]
+    }
+}, supports_credentials=True)
 
-# ✅ Add manual headers (for browsers that ignore CORS lib)
-@app.after_request
-def after_request(response):
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
-    return response
-
-
-# ===========================================
-# 🎯 Model + Scaler Loading
-# ===========================================
+# ----------------------------
+# Load model and scaler
+# ----------------------------
 try:
     model = joblib.load("forest_fire_model.pkl")
     scaler = joblib.load("scaler.pkl")
     print("✅ Model and Scaler loaded successfully.")
 except Exception as e:
     print("❌ Error loading model or scaler:", e)
+    model, scaler = None, None
 
-
-# ✅ Final selected features for Vanrakshak AI model
+# ----------------------------
+# Feature list (for validation)
+# ----------------------------
 USEFUL_FEATURES = [
     "temperature",
     "humidity",
@@ -42,93 +41,64 @@ USEFUL_FEATURES = [
     "temp_max",
     "temp_min",
     "wind_speed",
-    "wind_gust",
+    "wind_gust"
 ]
 
-
-# ===========================================
-# 🌐 ROUTES
-# ===========================================
-
+# ----------------------------
+# Routes
+# ----------------------------
 @app.route("/", methods=["GET"])
 def home():
-    """Home route to confirm server status"""
-    return jsonify(
-        {"message": "🌲 Vanrakshak Forest Fire Detection API is Running Successfully!"}
-    )
-
+    return jsonify({"message": "🌲 Vanrakshak Forest Fire Detection API is Live and Secure!"})
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    """AI-based forest fire risk prediction endpoint"""
     try:
-        data = request.get_json()
+        if model is None or scaler is None:
+            return jsonify({"error": "Model or scaler not loaded"}), 500
 
-        # ✅ Validate input
+        data = request.get_json()
         if not data:
             return jsonify({"error": "No input data provided"}), 400
 
-        # ✅ Convert JSON → DataFrame with defined feature order
+        # ✅ Convert JSON → DataFrame with exact column order
         input_df = pd.DataFrame([data], columns=USEFUL_FEATURES)
 
-        # ✅ Scale input using trained scaler
+        # ✅ Scale data
         scaled = scaler.transform(input_df)
 
-        # ✅ Predict fire risk level (model output: 0, 1, or 2)
+        # ✅ Predict class
         prediction = int(model.predict(scaled)[0])
 
-        # ✅ Handle probability (if classifier supports it)
+        # ✅ Optional probabilities
+        prob_dict = None
         if hasattr(model, "predict_proba"):
             proba = model.predict_proba(scaled)[0]
             prob_dict = {str(i): round(float(p), 4) for i, p in enumerate(proba)}
-        else:
-            prob_dict = None
 
-        # ✅ Interpret prediction results
+        # ✅ Interpret result
         risk_levels = {
-            0: {
-                "level": "Safe",
-                "emoji": "✅",
-                "message": "No fire risk detected.",
-            },
-            1: {
-                "level": "High Risk",
-                "emoji": "🔥",
-                "message": "Forest fire likely — immediate action advised!",
-            },
-            2: {
-                "level": "Borderline",
-                "emoji": "⚠️",
-                "message": "Uncertain condition — monitor closely.",
-            },
+            0: {"level": "Safe", "emoji": "✅", "message": "No fire risk detected."},
+            1: {"level": "High Risk", "emoji": "🔥", "message": "Forest fire likely — take action!"},
+            2: {"level": "Borderline", "emoji": "⚠️", "message": "Uncertain — monitor closely."}
         }
+        result = risk_levels.get(prediction, {"level": "Unknown", "emoji": "❓", "message": "Invalid prediction output."})
 
-        result = risk_levels.get(
-            prediction,
-            {"level": "Unknown", "emoji": "❓", "message": "Invalid prediction output."},
-        )
-
-        # ✅ Construct and return JSON response
-        return jsonify(
-            {
-                "prediction": prediction,
-                "level": result["level"],
-                "emoji": result["emoji"],
-                "message": result["message"],
-                "probabilities": prob_dict,
-            }
-        )
+        return jsonify({
+            "prediction": prediction,
+            "level": result["level"],
+            "emoji": result["emoji"],
+            "message": result["message"],
+            "probabilities": prob_dict
+        })
 
     except Exception as e:
-        print("❌ Error in /predict:", e)
         return jsonify({"error": str(e)}), 500
 
 
-# ===========================================
-# 🚀 RUN APP
-# ===========================================
+# ----------------------------
+# Run app (local or Render)
+# ----------------------------
 if __name__ == "__main__":
-    # ✅ Render uses $PORT env variable automatically
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    # On Render, Flask automatically uses PORT env variable
+    app.run(host="0.0.0.0", port=5000, debug=True)
