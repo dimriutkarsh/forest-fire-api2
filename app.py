@@ -8,14 +8,13 @@ import pandas as pd
 # ===========================================
 
 # Initialize Flask app
-app = Flask(_name_)
+app = Flask(__name__)
 
-# ✅ Allow all frontend origins (for development)
-# You can later replace "*" with your frontend domain (e.g., https://vanrakshak.vercel.app)
-CORS(app, resources={r"/": {"origins": ""}})
+# ✅ Allow all frontend origins (development mode)
+# You can replace "*" with your frontend domain (e.g., "https://vanrakshak.vercel.app") when deployed
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-
-# ✅ Add manual headers for complete CORS reliability
+# ✅ Add manual headers (for browsers that ignore CORS lib)
 @app.after_request
 def after_request(response):
     response.headers.add("Access-Control-Allow-Origin", "*")
@@ -99,7 +98,7 @@ def predict():
             },
             2: {
                 "level": "Borderline",
-                "emoji": "⚠",
+                "emoji": "⚠️",
                 "message": "Uncertain condition — monitor closely.",
             },
         }
@@ -128,6 +127,8 @@ def predict():
 # ===========================================
 # 🚀 RUN APP
 # ===========================================
-if _name_ == "_main_":
-    # Works locally or on Render
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == "__main__":
+    # ✅ Render uses $PORT env variable automatically
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
