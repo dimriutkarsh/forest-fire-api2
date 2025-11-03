@@ -5,7 +5,9 @@ import pandas as pd
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # ✅ Allow all frontend origins
+
+# ✅ Allow all frontend origins (safe for dev)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Load trained model and scaler
 try:
