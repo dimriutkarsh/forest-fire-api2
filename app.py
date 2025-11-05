@@ -17,7 +17,7 @@ CORS(app, resources={
             "http://localhost:8080/monitoring/esp001",
             "https://forest-fire-api2.onrender.com",   # backend itself
             "https://van-dash.vercel.app",
-            "https://github.com/coderpranjal09/vanRakhshak"# (optional) replace if you deploy frontend
+            "https://van-rakshak.netlify.app/"# (optional) replace if you deploy frontend
         ]
     }
 }, supports_credentials=True)
@@ -104,5 +104,6 @@ def predict():
 if __name__ == "__main__":
     # On Render, Flask automatically uses PORT env variable
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
