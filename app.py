@@ -15,7 +15,7 @@ CORS(app, resources={
             "http://localhost:8080",
             "http://127.0.0.1:8080",
             "https://van-dash.vercel.app",
-            "https://van-rakshak.netlify.app"
+            "https://van-rakshak.netlify.app",
             "https://fire-detection-system-git-main-coderpranjal09s-projects.vercel.app"# ✅ Your actual frontend domain
         ]
     }
@@ -102,4 +102,5 @@ def predict():
 # ----------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
